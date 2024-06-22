@@ -1,4 +1,5 @@
 import { Schema, model } from "mongoose";
+import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2";
 
 const blogSchema = new Schema(
   {
@@ -16,8 +17,8 @@ const blogSchema = new Schema(
       defaultValue: 0,
     },
     category: {
-      type: String,
-      required: true
+      type: Schema.Types.ObjectId,
+      ref: "Blogcategory",
     },
     owner: {
       type: Schema.Types.ObjectId,
@@ -28,5 +29,7 @@ const blogSchema = new Schema(
     timestamps: true,
   }
 );
+
+blogSchema.plugin(mongooseAggregatePaginate);
 
 export const Blog = model("Blog", blogSchema);

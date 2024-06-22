@@ -1,4 +1,5 @@
 import { Schema, model } from "mongoose";
+import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2";
 
 const commentSchema = new Schema(
   {
@@ -16,8 +17,10 @@ const commentSchema = new Schema(
     },
   },
   {
-    timestamps,
+    timestamps: true,
   }
 );
 
-export const Comment = model("Comment", commentSchema)
+commentSchema.plugin(mongooseAggregatePaginate);
+
+export const Comment = model("Comment", commentSchema);

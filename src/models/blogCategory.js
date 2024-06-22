@@ -14,4 +14,4 @@ const blogCategorySchema = new Schema(
   }
 );
 
-export const BlogCategory = model("BlogCategory", blogCategorySchema);
+export const BlogCategory = model("Blogcategory", blogCategorySchema);

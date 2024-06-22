@@ -3,6 +3,9 @@ import { Blog } from "../models/blog.model.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { ApiError } from "../utils/ApiError.js";
 import { validateMongoDBId } from "../utils/validateMongoDBId.js";
+import { BlogCategory } from "../models/blogCategory.js";
+import { Like } from "../models/like.model.js";
+import { Comment } from "../models/comment.model.js";
 import mongoose from "mongoose";
 
 const createBlog = asyncHandler(async (req, res) => {
@@ -10,6 +13,10 @@ const createBlog = asyncHandler(async (req, res) => {
 
   if (!title || !content || !category) {
     throw new ApiError(400, "All Fields are required");
+  }
+  const categoryExists = await BlogCategory.findById(category);
+  if (!categoryExists) {
+    throw new ApiError(404, "Category not found");
   }
 
   const blog = await Blog.create({
@@ -74,6 +81,8 @@ const deleteBlog = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Only owner can delete their blog");
   }
   await Blog.findByIdAndDelete(blogId);
+  await Like.deleteMany({ blog: blogId });
+  await Comment.deleteMany({ blog: blogId });
 
   return res
     .status(200)
@@ -109,12 +118,27 @@ const getOwnBlogs = asyncHandler(async (req, res) => {
       $lookup: {
         from: "likes",
         localField: "_id",
-        foreignField: "like",
+        foreignField: "blog",
         as: "likeDetails",
         pipeline: [
           {
             $project: {
               likedBy: 1,
+            },
+          },
+        ],
+      },
+    },
+    {
+      $lookup: {
+        from: "blogcategories",
+        localField: "category",
+        foreignField: "_id",
+        as: "categoryDetails",
+        pipeline: [
+          {
+            $project: {
+              title: 1,
             },
           },
         ],
@@ -128,6 +152,9 @@ const getOwnBlogs = asyncHandler(async (req, res) => {
         ownerDetails: {
           $first: "$ownerDetails",
         },
+        categoryDetails: {
+          $first: "$categoryDetails",
+        },
       },
     },
     {
@@ -139,7 +166,7 @@ const getOwnBlogs = asyncHandler(async (req, res) => {
       $project: {
         title: 1,
         content: 1,
-        category: 1,
+        category: "$categoryDetails.title",
         ownerDetails: 1,
         likesCount: 1,
         createdAt: 1,
@@ -180,12 +207,27 @@ const getUserBlogs = asyncHandler(async (req, res) => {
       $lookup: {
         from: "likes",
         localField: "_id",
-        foreignField: "like",
+        foreignField: "blog",
         as: "likeDetails",
         pipeline: [
           {
             $project: {
               likedBy: 1,
+            },
+          },
+        ],
+      },
+    },
+    {
+      $lookup: {
+        from: "blogcategories",
+        localField: "category",
+        foreignField: "_id",
+        as: "categoryDetails",
+        pipeline: [
+          {
+            $project: {
+              title: 1,
             },
           },
         ],
@@ -198,6 +240,9 @@ const getUserBlogs = asyncHandler(async (req, res) => {
         },
         ownerDetails: {
           $first: "$ownerDetails",
+        },
+        categoryDetails: {
+          $first: "$categoryDetails",
         },
         isLiked: {
           $cond: {
@@ -217,7 +262,7 @@ const getUserBlogs = asyncHandler(async (req, res) => {
       $project: {
         title: 1,
         content: 1,
-        category: 1,
+        category: "$categoryDetails.title",
         ownerDetails: 1,
         likesCount: 1,
         createdAt: 1,
@@ -229,8 +274,11 @@ const getUserBlogs = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, blogs, "User all blogs fetched"));
 });
+
 const getAllBlogs = asyncHandler(async (req, res) => {
-  const blogs = await Blog.aggregate([
+  const { page = 1, limit = 10 } = req.query;
+
+  const aggregateQuery = Blog.aggregate([
     {
       $lookup: {
         from: "users",
@@ -251,12 +299,27 @@ const getAllBlogs = asyncHandler(async (req, res) => {
       $lookup: {
         from: "likes",
         localField: "_id",
-        foreignField: "like",
+        foreignField: "blog",
         as: "likeDetails",
         pipeline: [
           {
             $project: {
               likedBy: 1,
+            },
+          },
+        ],
+      },
+    },
+    {
+      $lookup: {
+        from: "blogcategories",
+        localField: "category",
+        foreignField: "_id",
+        as: "categoryDetails",
+        pipeline: [
+          {
+            $project: {
+              title: 1,
             },
           },
         ],
@@ -271,8 +334,8 @@ const getAllBlogs = asyncHandler(async (req, res) => {
           $first: "$ownerDetails",
         },
         categoryDetails: {
-            $first: "$categoryDetails",
-          },
+          $first: "$categoryDetails",
+        },
       },
     },
     {
@@ -284,13 +347,20 @@ const getAllBlogs = asyncHandler(async (req, res) => {
       $project: {
         title: 1,
         content: 1,
-        category: 1,
+        category: "$categoryDetails.title",
         ownerDetails: 1,
         likesCount: 1,
         createdAt: 1,
       },
     },
   ]);
+
+  const options = {
+    page: parseInt(page, 10),
+    limit: parseInt(limit, 10),
+  };
+
+  const blogs = await Blog.aggregatePaginate(aggregateQuery, options);
 
   return res.status(200).json({
     status: 200,
@@ -330,12 +400,27 @@ const getSingleBlog = asyncHandler(async (req, res) => {
       $lookup: {
         from: "likes",
         localField: "_id",
-        foreignField: "like",
+        foreignField: "blog",
         as: "likeDetails",
         pipeline: [
           {
             $project: {
               likedBy: 1,
+            },
+          },
+        ],
+      },
+    },
+    {
+      $lookup: {
+        from: "blogcategories",
+        localField: "category",
+        foreignField: "_id",
+        as: "categoryDetails",
+        pipeline: [
+          {
+            $project: {
+              title: 1,
             },
           },
         ],
@@ -348,6 +433,9 @@ const getSingleBlog = asyncHandler(async (req, res) => {
         },
         ownerDetails: {
           $first: "$ownerDetails",
+        },
+        categoryDetails: {
+          $first: "$categoryDetails",
         },
         isLiked: {
           $cond: {
@@ -362,7 +450,7 @@ const getSingleBlog = asyncHandler(async (req, res) => {
       $project: {
         title: 1,
         content: 1,
-        category: 1,
+        category: "$categoryDetails.title",
         ownerDetails: 1,
         likesCount: 1,
         createdAt: 1,

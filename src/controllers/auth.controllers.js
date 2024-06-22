@@ -4,7 +4,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
 import { validateMongoDBId } from "../utils/validateMongoDBId.js";
-import jwt from 'jsonwebtoken'
+import jwt from "jsonwebtoken";
 
 const generateAccessAndRefreshToken = async (userId) => {
   try {
@@ -253,7 +253,7 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
   if (!avatar.url) {
     throw new ApiError(400, "Error while uploading avatar");
   }
- 
+
   const user = await User.findByIdAndUpdate(
     req.user?._id,
     {
@@ -261,7 +261,7 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
         avatar: {
           public_id: avatar.public_id,
           url: avatar.url,
-        }
+        },
       },
     },
     {
@@ -272,4 +272,13 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, user, "Avatar Updated Successfully"));
 });
-export { registerUser, loginUser, logoutUser, refreshAccessToken, changeCurrentPassword, getCurrentUser, updateAccountDetail, updateUserAvatar };
+export {
+  registerUser,
+  loginUser,
+  logoutUser,
+  refreshAccessToken,
+  changeCurrentPassword,
+  getCurrentUser,
+  updateAccountDetail,
+  updateUserAvatar,
+};

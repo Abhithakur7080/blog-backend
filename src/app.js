@@ -21,9 +21,15 @@ app.use(morgan("dev"))
 //routes imports
 import authRoutes from './routes/auth.routes.js'
 import blogRoutes from './routes/blog.routes.js'
+import likeRoutes from './routes/like.routes.js'
+import commentRoutes from './routes/comment.routes.js'
+import blogCategoryRoutes from './routes/blogCategory.routes.js'
 
 //routes use
 app.use("/api/v1/auth", authRoutes)
 app.use("/api/v1/blog", blogRoutes)
+app.use("/api/v1/like", likeRoutes)
+app.use("/api/v1/comment", commentRoutes)
+app.use("/api/v1/blog-category", blogCategoryRoutes)
 
 export default app;
